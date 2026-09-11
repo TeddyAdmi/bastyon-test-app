@@ -1,0 +1,10 @@
+{
+  "id": "pocket.simple.app",
+  "name": "Simple Test App",
+  "version": "1.0.0",
+  "description": "Тестовое приложение для Bastyon",
+  "scope": "bastyon-test-app.vercel.app",
+  "permissions": [
+    "account"
+  ]
+}
