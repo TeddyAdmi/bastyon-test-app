@@ -5,7 +5,12 @@
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "*" },
         { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "*" },
+        { "key": "Access-Control-Allow-Headers", "value": "*" }
+      ]
+    },
+    {
+      "source": "/b_manifest.json",
+      "headers": [
         { "key": "Content-Type", "value": "application/json; charset=utf-8" }
       ]
     }
