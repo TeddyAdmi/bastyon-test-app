@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Simple App</title>
+  <script src="https://bastyon.com/js/lib/apps/sdk.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding-top: 50px;
+      background-color: #1a1a1a;
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body>
+  <h1>🚀 Тестовое приложение работает!</h1>
+  <p id="status">Загрузка SDK...</p>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const sdk = new window.BastyonSdk();
+        await sdk.init();
+        sdk.emit('loaded');
+        document.getElementById('status').innerText = 'Успешно подключено к Bastyon!';
+      } catch (e) {
+        document.getElementById('status').innerText = 'Ошибка инициализации SDK';
+      }
+    });
+  </script>
+</body>
+</html>
