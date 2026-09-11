@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "description": "Тестовое приложение для Bastyon",
   "scope": "bastyon-test-app.vercel.app",
+  "author": "TSBRUhPWre3D23gpdsCYo3RpoAybt7YuDT",
   "permissions": [
     "account"
   ]
