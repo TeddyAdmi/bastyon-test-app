@@ -9,17 +9,17 @@
     body {
       font-family: Arial, sans-serif;
       text-align: center;
-      padding: 30px;
+      padding: 20px;
       background-color: #1a1a1a;
       color: #ffffff;
     }
     .card {
       background: #2a2a2a;
-      border-radius: 12px;
-      padding: 20px;
-      max-width: 400px;
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 380px;
       margin: 0 auto;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
     }
     button {
       background-color: #f39c12;
@@ -27,18 +27,49 @@
       border: none;
       padding: 12px 24px;
       font-size: 16px;
-      border-radius: 6px;
+      font-weight: bold;
+      border-radius: 8px;
       cursor: pointer;
       transition: 0.2s;
     }
     button:hover {
       background-color: #d35400;
     }
-    .wallet-info {
+    .profile-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       margin-top: 15px;
+      gap: 10px;
+    }
+    .avatar {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #f39c12;
+      background-color: #333;
+    }
+    .user-name {
+      font-size: 18px;
+      font-weight: bold;
+      color: #ffffff;
+      margin: 0;
+    }
+    .wallet-address {
+      font-size: 11px;
+      color: #888888;
       word-break: break-all;
-      font-size: 14px;
-      color: #2ecc71;
+      margin: 0;
+    }
+    .balance-badge {
+      background: #27ae60;
+      color: #fff;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 15px;
+      font-weight: bold;
+      margin-top: 5px;
     }
   </style>
 </head>
@@ -48,9 +79,14 @@
     <h1>🎮 Игра КНБ</h1>
     <p id="status">Инициализация SDK...</p>
     
-    <button id="connectBtn" style="display: none;">Подключить кошелек</button>
+    <button id="connectBtn" style="display: none;">Подключить профиль</button>
 
-    <div id="accountDetails" class="wallet-info"></div>
+    <div id="profile" class="profile-container" style="display: none;">
+      <img id="userAvatar" class="avatar" src="" alt="Avatar">
+      <p id="userName" class="user-name"></p>
+      <p id="userAddress" class="wallet-address"></p>
+      <div id="userBalance" class="balance-badge">0 PKOIN</div>
+    </div>
   </div>
 
   <script>
@@ -59,42 +95,54 @@
     document.addEventListener('DOMContentLoaded', async () => {
       const statusEl = document.getElementById('status');
       const connectBtn = document.getElementById('connectBtn');
-      const accountDetails = document.getElementById('accountDetails');
+      const profileEl = document.getElementById('profile');
 
       try {
-        // Инициализация Bastyon SDK
         sdk = new window.BastyonSdk();
         await sdk.init();
-        
-        // Уведомляем Bastyon, что приложение загрузилось
         sdk.emit('loaded');
-        statusEl.innerText = 'Приложение готово';
+        
+        statusEl.innerText = 'Готово к подключению';
         connectBtn.style.display = 'inline-block';
-
       } catch (e) {
         statusEl.innerText = 'Ошибка инициализации SDK';
         console.error(e);
       }
 
-      // Обработка клика по кнопке подключения
       connectBtn.addEventListener('click', async () => {
         try {
-          statusEl.innerText = 'Запрос аккаунта...';
+          statusEl.innerText = 'Загрузка профиля...';
           
-          // Запрашиваем адрес текущего пользователя
-          const userAddress = await sdk.get.account();
+          // 1. Получаем данные аккаунта (имя, адрес, аватар)
+          const account = await sdk.get.account();
           
-          if (userAddress) {
-            statusEl.innerText = 'Кошелек подключен!';
+          // 2. Получаем баланс пользователя
+          const balance = await sdk.get.balance();
+
+          if (account) {
+            statusEl.style.display = 'none';
             connectBtn.style.display = 'none';
-            accountDetails.innerHTML = `
-              <p><strong>Адрес:</strong> ${userAddress}</p>
-            `;
+
+            // Извлекаем адрес и имя
+            const address = account.address || account;
+            const name = account.name || 'Пользователь Bastyon';
+            const avatarUrl = account.avatar || 'https://bastyon.com/img/user_icon.png';
+
+            // Извлекаем баланс в монетах PKOIN
+            const pkoinAmount = (balance && balance.balance) ? balance.balance : (balance || 0);
+
+            // Отображаем на странице
+            document.getElementById('userAvatar').src = avatarUrl;
+            document.getElementById('userName').innerText = name;
+            document.getElementById('userAddress').innerText = address;
+            document.getElementById('userBalance').innerText = `${pkoinAmount} PKOIN`;
+
+            profileEl.style.display = 'flex';
           } else {
-            statusEl.innerText = 'Не удалось получить адрес';
+            statusEl.innerText = 'Не удалось получить данные';
           }
         } catch (err) {
-          statusEl.innerText = 'Ошибка подключения кошелька';
+          statusEl.innerText = 'Ошибка получения профиля';
           console.error(err);
         }
       });
