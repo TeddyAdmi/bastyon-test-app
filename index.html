@@ -7,21 +7,27 @@
   <script src="https://bastyon.com/js/lib/apps/sdk.js"></script>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       text-align: center;
-      padding: 20px;
-      background-color: #1a1a1a;
+      padding: 20px 10px;
+      background-color: #121212;
       color: #ffffff;
+      margin: 0;
     }
     .card {
-      background: #2a2a2a;
+      background: #1e1e1e;
       border-radius: 16px;
-      padding: 24px;
-      max-width: 380px;
+      padding: 24px 16px;
+      max-width: 400px;
       margin: 0 auto;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+      border: 1px solid #333;
     }
-    button {
+    h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    button.btn-main {
       background-color: #f39c12;
       color: white;
       border: none;
@@ -30,49 +36,45 @@
       font-weight: bold;
       border-radius: 8px;
       cursor: pointer;
-      transition: 0.2s;
+      transition: background 0.2s;
     }
-    button:hover {
+    button.btn-main:hover {
       background-color: #d35400;
     }
     .profile-container {
       display: flex;
       flex-direction: column;
       align-items: center;
-      margin-top: 15px;
-      gap: 10px;
+      gap: 8px;
+      margin-bottom: 20px;
     }
-    /* Стили для аватара-картинки */
     .avatar-img {
-      width: 70px;
-      height: 70px;
+      width: 64px;
+      height: 64px;
       border-radius: 50%;
       object-fit: cover;
-      border: 3px solid #f39c12;
+      border: 2px solid #f39c12;
     }
-    /* Стили для текстового аватара (буква имени), как в Bastyon */
     .avatar-letter {
-      width: 70px;
-      height: 70px;
+      width: 64px;
+      height: 64px;
       border-radius: 50%;
       background: linear-gradient(135deg, #f39c12, #e67e22);
       color: #ffffff;
-      font-size: 32px;
+      font-size: 28px;
       font-weight: bold;
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 3px solid #ffffff;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      border: 2px solid #ffffff;
     }
     .user-name {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: bold;
-      color: #ffffff;
       margin: 0;
     }
     .wallet-address {
-      font-size: 11px;
+      font-size: 10px;
       color: #888888;
       word-break: break-all;
       margin: 0;
@@ -80,61 +82,124 @@
     .balance-badge {
       background: #27ae60;
       color: #fff;
-      padding: 8px 16px;
+      padding: 6px 14px;
       border-radius: 20px;
-      font-size: 16px;
+      font-size: 14px;
       font-weight: bold;
-      margin-top: 5px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      margin-top: 4px;
+    }
+    
+    /* Стили для игры КНБ */
+    .game-section {
+      border-top: 1px solid #333;
+      padding-top: 16px;
+      margin-top: 16px;
+    }
+    .score-board {
+      display: flex;
+      justify-content: space-around;
+      background: #2a2a2a;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .choices {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .choice-btn {
+      background: #2a2a2a;
+      border: 2px solid #444;
+      border-radius: 12px;
+      font-size: 32px;
+      padding: 12px;
+      cursor: pointer;
+      width: 70px;
+      height: 70px;
+      transition: transform 0.1s, border-color 0.2s;
+    }
+    .choice-btn:hover {
+      transform: scale(1.08);
+      border-color: #f39c12;
+    }
+    .result-box {
+      min-height: 50px;
+      font-size: 15px;
+      font-weight: bold;
+      color: #f39c12;
     }
   </style>
 </head>
 <body>
 
   <div class="card">
-    <h1>🎮 Игра КНБ</h1>
+    <h1>🎮 Игра «КНБ»</h1>
     <p id="status">Инициализация SDK...</p>
     
-    <button id="connectBtn" style="display: none;">Подключить профиль</button>
+    <button id="connectBtn" class="btn-main" style="display: none;">Подключить профиль</button>
 
+    <!-- Профиль пользователя -->
     <div id="profile" class="profile-container" style="display: none;">
-      <!-- Контейнер аватара: сюда подставим картинку или букву -->
       <div id="avatarContainer"></div>
-
       <p id="userName" class="user-name"></p>
       <p id="userAddress" class="wallet-address"></p>
-      <div id="userBalance" class="balance-badge">0 PKOIN</div>
+      <div id="userBalance" class="balance-badge">0.0000 PKOIN</div>
+    </div>
+
+    <!-- Игровое поле КНБ -->
+    <div id="gameSection" class="game-section" style="display: none;">
+      <div class="score-board">
+        <div>Вы: <span id="playerScore" style="color: #2ecc71;">0</span></div>
+        <div>Бот: <span id="botScore" style="color: #e74c3c;">0</span></div>
+      </div>
+
+      <p style="font-size: 14px; color: #ccc;">Сделайте ваш выбор:</p>
+      <div class="choices">
+        <button class="choice-btn" onclick="playGame('rock')">✊</button>
+        <button class="choice-btn" onclick="playGame('paper')">✋</button>
+        <button class="choice-btn" onclick="playGame('scissors')">✌️</button>
+      </div>
+
+      <div id="result" class="result-box">Выберите фигуру для начала игры</div>
     </div>
   </div>
 
   <script>
     let sdk = null;
+    let playerScore = 0;
+    let botScore = 0;
 
-    // Вспомогательная функция разбора баланса
+    // Вспомогательная функция расчёта баланса
     function parseBalance(balanceData) {
-      if (typeof balanceData === 'number') return balanceData;
-      if (typeof balanceData === 'string') return parseFloat(balanceData) || 0;
-      if (balanceData && typeof balanceData === 'object') {
-        if ('balance' in balanceData) return balanceData.balance;
-        if ('temp' in balanceData) return balanceData.temp;
-        if (Array.isArray(balanceData) && balanceData.length > 0) {
-          return balanceData[0].balance || 0;
+      let val = 0;
+      if (typeof balanceData === 'number') val = balanceData;
+      else if (typeof balanceData === 'string') val = parseFloat(balanceData) || 0;
+      else if (balanceData && typeof balanceData === 'object') {
+        if ('balance' in balanceData) val = balanceData.balance;
+        else if ('temp' in balanceData) val = balanceData.temp;
+        else if (Array.isArray(balanceData) && balanceData.length > 0) {
+          val = balanceData[0].balance || 0;
         }
       }
-      return 0;
+      return (Number(val) || 0).toFixed(4);
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
       const statusEl = document.getElementById('status');
       const connectBtn = document.getElementById('connectBtn');
       const profileEl = document.getElementById('profile');
+      const gameSection = document.getElementById('gameSection');
 
       try {
         sdk = new window.BastyonSdk();
         await sdk.init();
         sdk.emit('loaded');
         
-        statusEl.innerText = 'Готово к подключению';
+        statusEl.innerText = 'Нажмите для подключения';
         connectBtn.style.display = 'inline-block';
       } catch (e) {
         statusEl.innerText = 'Ошибка инициализации SDK';
@@ -145,23 +210,18 @@
         try {
           statusEl.innerText = 'Загрузка профиля...';
           
-          // 1. Данные аккаунта
           const account = await sdk.get.account();
-          // 2. Баланс
           const rawBalance = await sdk.get.balance();
 
           if (account) {
             statusEl.style.display = 'none';
             connectBtn.style.display = 'none';
 
-            // Адрес и Имя
             const address = account.address || (typeof account === 'string' ? account : 'Неизвестный адрес');
             const name = account.name || 'Пользователь Bastyon';
-            
-            // Расчет баланса
             const pkoinAmount = parseBalance(rawBalance);
 
-            // Отрисовка Аватара (Картинка или Буква)
+            // Аватар
             const avatarContainer = document.getElementById('avatarContainer');
             if (account.avatar && account.avatar.length > 5) {
               avatarContainer.innerHTML = `<img class="avatar-img" src="${account.avatar}" alt="Avatar">`;
@@ -175,6 +235,7 @@
             document.getElementById('userBalance').innerText = `${pkoinAmount} PKOIN`;
 
             profileEl.style.display = 'flex';
+            gameSection.style.display = 'block';
           } else {
             statusEl.innerText = 'Не удалось получить данные';
           }
@@ -184,6 +245,34 @@
         }
       });
     });
+
+    // Логика игры
+    function playGame(playerChoice) {
+      const choices = ['rock', 'paper', 'scissors'];
+      const icons = { rock: '✊', paper: '✋', scissors: '✌️' };
+      const botChoice = choices[Math.floor(Math.random() * choices.length)];
+      
+      const resultEl = document.getElementById('result');
+
+      if (playerChoice === botChoice) {
+        resultEl.innerHTML = `Ничья! <br>Вы: ${icons[playerChoice]} vs Бот: ${icons[botChoice]}`;
+        resultEl.style.color = '#f1c40f';
+      } else if (
+        (playerChoice === 'rock' && botChoice === 'scissors') ||
+        (playerChoice === 'paper' && botChoice === 'rock') ||
+        (playerChoice === 'scissors' && botChoice === 'paper')
+      ) {
+        playerScore++;
+        document.getElementById('playerScore').innerText = playerScore;
+        resultEl.innerHTML = `Вы выиграли! 🎉<br>Вы: ${icons[playerChoice]} vs Бот: ${icons[botChoice]}`;
+        resultEl.style.color = '#2ecc71';
+      } else {
+        botScore++;
+        document.getElementById('botScore').innerText = botScore;
+        resultEl.innerHTML = `Бот выиграл! 🤖<br>Вы: ${icons[playerChoice]} vs Бот: ${icons[botChoice]}`;
+        resultEl.style.color = '#e74c3c';
+      }
+    }
   </script>
 </body>
 </html>
