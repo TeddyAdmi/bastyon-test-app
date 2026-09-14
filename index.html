@@ -2,32 +2,102 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Simple App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>КНБ Игра - Bastyon</title>
   <script src="https://bastyon.com/js/lib/apps/sdk.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
-      padding-top: 50px;
+      padding: 30px;
       background-color: #1a1a1a;
       color: #ffffff;
+    }
+    .card {
+      background: #2a2a2a;
+      border-radius: 12px;
+      padding: 20px;
+      max-width: 400px;
+      margin: 0 auto;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+    button {
+      background-color: #f39c12;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:hover {
+      background-color: #d35400;
+    }
+    .wallet-info {
+      margin-top: 15px;
+      word-break: break-all;
+      font-size: 14px;
+      color: #2ecc71;
     }
   </style>
 </head>
 <body>
-  <h1>🚀 Тестовое приложение работает!</h1>
-  <p id="status">Загрузка SDK...</p>
+
+  <div class="card">
+    <h1>🎮 Игра КНБ</h1>
+    <p id="status">Инициализация SDK...</p>
+    
+    <button id="connectBtn" style="display: none;">Подключить кошелек</button>
+
+    <div id="accountDetails" class="wallet-info"></div>
+  </div>
 
   <script>
+    let sdk = null;
+
     document.addEventListener('DOMContentLoaded', async () => {
+      const statusEl = document.getElementById('status');
+      const connectBtn = document.getElementById('connectBtn');
+      const accountDetails = document.getElementById('accountDetails');
+
       try {
-        const sdk = new window.BastyonSdk();
+        // Инициализация Bastyon SDK
+        sdk = new window.BastyonSdk();
         await sdk.init();
+        
+        // Уведомляем Bastyon, что приложение загрузилось
         sdk.emit('loaded');
-        document.getElementById('status').innerText = 'Успешно подключено к Bastyon!';
+        statusEl.innerText = 'Приложение готово';
+        connectBtn.style.display = 'inline-block';
+
       } catch (e) {
-        document.getElementById('status').innerText = 'Ошибка инициализации SDK';
+        statusEl.innerText = 'Ошибка инициализации SDK';
+        console.error(e);
       }
+
+      // Обработка клика по кнопке подключения
+      connectBtn.addEventListener('click', async () => {
+        try {
+          statusEl.innerText = 'Запрос аккаунта...';
+          
+          // Запрашиваем адрес текущего пользователя
+          const userAddress = await sdk.get.account();
+          
+          if (userAddress) {
+            statusEl.innerText = 'Кошелек подключен!';
+            connectBtn.style.display = 'none';
+            accountDetails.innerHTML = `
+              <p><strong>Адрес:</strong> ${userAddress}</p>
+            `;
+          } else {
+            statusEl.innerText = 'Не удалось получить адрес';
+          }
+        } catch (err) {
+          statusEl.innerText = 'Ошибка подключения кошелька';
+          console.error(err);
+        }
+      });
     });
   </script>
 </body>
