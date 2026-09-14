@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>КНБ Игра - Bastyon</title>
+  <title>КНБ PKOIN - Bastyon</title>
   <script src="https://bastyon.com/js/lib/apps/sdk.js"></script>
   <style>
     body {
@@ -24,8 +24,9 @@
       border: 1px solid #333;
     }
     h1 {
-      font-size: 24px;
-      margin-bottom: 10px;
+      font-size: 22px;
+      margin-bottom: 12px;
+      color: #f39c12;
     }
     button.btn-main {
       background-color: #f39c12;
@@ -89,21 +90,34 @@
       margin-top: 4px;
     }
     
-    /* Стили для игры КНБ */
+    /* Стили для реальной игры на ставки */
     .game-section {
       border-top: 1px solid #333;
       padding-top: 16px;
       margin-top: 16px;
     }
-    .score-board {
-      display: flex;
-      justify-content: space-around;
+    .bet-container {
+      margin-bottom: 15px;
       background: #2a2a2a;
-      padding: 10px;
-      border-radius: 8px;
-      margin-bottom: 16px;
+      padding: 12px;
+      border-radius: 10px;
+    }
+    .bet-container label {
+      display: block;
+      font-size: 13px;
+      color: #aaa;
+      margin-bottom: 6px;
+    }
+    .bet-input {
+      width: 100px;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #444;
+      background: #121212;
+      color: #fff;
+      font-size: 16px;
+      text-align: center;
       font-weight: bold;
-      font-size: 14px;
     }
     .choices {
       display: flex;
@@ -126,21 +140,26 @@
       transform: scale(1.08);
       border-color: #f39c12;
     }
+    .choice-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
     .result-box {
       min-height: 50px;
-      font-size: 15px;
+      font-size: 14px;
       font-weight: bold;
       color: #f39c12;
+      word-break: break-all;
     }
   </style>
 </head>
 <body>
 
   <div class="card">
-    <h1>🎮 Игра «КНБ»</h1>
-    <p id="status">Инициализация SDK...</p>
+    <h1>🎮 Игра «КНБ» (PKOIN)</h1>
+    <p id="status">Инициализация Bastyon SDK...</p>
     
-    <button id="connectBtn" class="btn-main" style="display: none;">Подключить профиль</button>
+    <button id="connectBtn" class="btn-main" style="display: none;">Подключить кошелек Bastyon</button>
 
     <!-- Профиль пользователя -->
     <div id="profile" class="profile-container" style="display: none;">
@@ -150,30 +169,31 @@
       <div id="userBalance" class="balance-badge">0.0000 PKOIN</div>
     </div>
 
-    <!-- Игровое поле КНБ -->
+    <!-- Игровой блок с реальными ставками -->
     <div id="gameSection" class="game-section" style="display: none;">
-      <div class="score-board">
-        <div>Вы: <span id="playerScore" style="color: #2ecc71;">0</span></div>
-        <div>Бот: <span id="botScore" style="color: #e74c3c;">0</span></div>
+      
+      <div class="bet-container">
+        <label for="betAmount">Размер ставки (PKOIN):</label>
+        <input type="number" id="betAmount" class="bet-input" value="0.1" step="0.1" min="0.05">
       </div>
 
-      <p style="font-size: 14px; color: #ccc;">Сделайте ваш выбор:</p>
+      <p style="font-size: 13px; color: #ccc;">Выберите ход (вызовется кошелек):</p>
       <div class="choices">
-        <button class="choice-btn" onclick="playGame('rock')">✊</button>
-        <button class="choice-btn" onclick="playGame('paper')">✋</button>
-        <button class="choice-btn" onclick="playGame('scissors')">✌️</button>
+        <button class="choice-btn" onclick="makeRealBet('rock')">✊</button>
+        <button class="choice-btn" onclick="makeRealBet('paper')">✋</button>
+        <button class="choice-btn" onclick="makeRealBet('scissors')">✌️</button>
       </div>
 
-      <div id="result" class="result-box">Выберите фигуру для начала игры</div>
+      <div id="result" class="result-box">Сделайте выбор для начала раунда</div>
     </div>
   </div>
 
   <script>
     let sdk = null;
-    let playerScore = 0;
-    let botScore = 0;
+    let currentUserAddress = "";
+    let currentBalanceNum = 0;
 
-    // Вспомогательная функция расчёта баланса
+    // Вспомогательный класс парсинга баланса
     function parseBalance(balanceData) {
       let val = 0;
       if (typeof balanceData === 'number') val = balanceData;
@@ -185,7 +205,18 @@
           val = balanceData[0].balance || 0;
         }
       }
-      return (Number(val) || 0).toFixed(4);
+      return Number(val) || 0;
+    }
+
+    // Обновление баланса на экране
+    async function refreshBalance() {
+      try {
+        const rawBalance = await sdk.get.balance();
+        currentBalanceNum = parseBalance(rawBalance);
+        document.getElementById('userBalance').innerText = `${currentBalanceNum.toFixed(4)} PKOIN`;
+      } catch (e) {
+        console.error("Ошибка обновления баланса", e);
+      }
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -199,55 +230,100 @@
         await sdk.init();
         sdk.emit('loaded');
         
-        statusEl.innerText = 'Нажмите для подключения';
+        statusEl.innerText = 'Кошелек готов';
         connectBtn.style.display = 'inline-block';
       } catch (e) {
-        statusEl.innerText = 'Ошибка инициализации SDK';
+        statusEl.innerText = 'Ошибка инициализации Bastyon SDK';
         console.error(e);
       }
 
       connectBtn.addEventListener('click', async () => {
         try {
-          statusEl.innerText = 'Загрузка профиля...';
+          statusEl.innerText = 'Запрос доступа к кошельку...';
           
           const account = await sdk.get.account();
-          const rawBalance = await sdk.get.balance();
 
           if (account) {
             statusEl.style.display = 'none';
             connectBtn.style.display = 'none';
 
-            const address = account.address || (typeof account === 'string' ? account : 'Неизвестный адрес');
+            currentUserAddress = account.address || (typeof account === 'string' ? account : '');
             const name = account.name || 'Пользователь Bastyon';
-            const pkoinAmount = parseBalance(rawBalance);
 
-            // Аватар
+            // Отображение аватарки/буквы
             const avatarContainer = document.getElementById('avatarContainer');
             if (account.avatar && account.avatar.length > 5) {
               avatarContainer.innerHTML = `<img class="avatar-img" src="${account.avatar}" alt="Avatar">`;
             } else {
-              const firstLetter = name.charAt(0).toUpperCase() || 'U';
+              const firstLetter = name.charAt(0).toUpperCase() || 'B';
               avatarContainer.innerHTML = `<div class="avatar-letter">${firstLetter}</div>`;
             }
 
             document.getElementById('userName').innerText = name;
-            document.getElementById('userAddress').innerText = address;
-            document.getElementById('userBalance').innerText = `${pkoinAmount} PKOIN`;
+            document.getElementById('userAddress').innerText = currentUserAddress;
+
+            await refreshBalance();
 
             profileEl.style.display = 'flex';
             gameSection.style.display = 'block';
           } else {
-            statusEl.innerText = 'Не удалось получить данные';
+            statusEl.innerText = 'Не удалось получить доступ к аккаунту';
           }
         } catch (err) {
-          statusEl.innerText = 'Ошибка получения профиля';
+          statusEl.innerText = 'Ошибка подключения';
           console.error(err);
         }
       });
     });
 
-    // Логика игры
-    function playGame(playerChoice) {
+    // Функция проведения РЕАЛЬНОЙ ставки через Bastyon Payment SDK
+    async function makeRealBet(playerChoice) {
+      const betInput = document.getElementById('betAmount');
+      const betAmount = parseFloat(betInput.value);
+      const resultEl = document.getElementById('result');
+
+      if (isNaN(betAmount) || betAmount <= 0) {
+        resultEl.innerHTML = "<span style='color: #e74c3c;'>Укажите корректный размер ставки!</span>";
+        return;
+      }
+
+      if (betAmount > currentBalanceNum) {
+        resultEl.innerHTML = "<span style='color: #e74c3c;'>Недостаточно PKOIN на балансе!</span>";
+        return;
+      }
+
+      // Блокируем кнопки на время транзакции
+      toggleButtons(true);
+      resultEl.innerHTML = "⏳ Ожидание подтверждения транзакции в кошельке Bastyon...";
+
+      try {
+        // Вызываем НАСТОЯЩИЙ интерфейс оплаты кошелька Bastyon
+        const paymentResult = await sdk.payment({
+          address: currentUserAddress, // В тестовых целях отправляем на свой адрес (или адрес dApp)
+          amount: betAmount,
+          message: `Ставка в игре КНБ: ${playerChoice}`
+        });
+
+        console.log("Транзакция отправлена:", paymentResult);
+
+        // Если кошелек подтвердил транзакцию — играем раунд
+        resultEl.innerHTML = "✅ Транзакция принята! Бот делает ход...";
+        
+        setTimeout(() => {
+          resolveRound(playerChoice, betAmount, paymentResult?.txid || 'подтверждено');
+          refreshBalance();
+          toggleButtons(false);
+        }, 1200);
+
+      } catch (err) {
+        console.error("Ошибка транзакции:", err);
+        resultEl.innerHTML = "<span style='color: #e74c3c;'>Транзакция отменена или отклонена кошельком.</span>";
+        toggleButtons(false);
+      }
+    }
+
+    // Подведение итогов раунда после оплаты
+    function resolveRound(playerChoice, betAmount, txid) {
       const choices = ['rock', 'paper', 'scissors'];
       const icons = { rock: '✊', paper: '✋', scissors: '✌️' };
       const botChoice = choices[Math.floor(Math.random() * choices.length)];
@@ -255,23 +331,25 @@
       const resultEl = document.getElementById('result');
 
       if (playerChoice === botChoice) {
-        resultEl.innerHTML = `Ничья! <br>Вы: ${icons[playerChoice]} vs Бот: ${icons[botChoice]}`;
+        resultEl.innerHTML = `Ничья! 🤝<br>Вы: ${icons[playerChoice]} vs Бот: ${icons[botChoice]}<br><small style="color:#aaa;">Ставка ${betAmount} PKOIN возвращена.</small>`;
         resultEl.style.color = '#f1c40f';
       } else if (
         (playerChoice === 'rock' && botChoice === 'scissors') ||
         (playerChoice === 'paper' && botChoice === 'rock') ||
         (playerChoice === 'scissors' && botChoice === 'paper')
       ) {
-        playerScore++;
-        document.getElementById('playerScore').innerText = playerScore;
-        resultEl.innerHTML = `Вы выиграли! 🎉<br>Вы: ${icons[playerChoice]} vs Бот: ${icons[botChoice]}`;
+        const winAmount = (betAmount * 2).toFixed(4);
+        resultEl.innerHTML = `ВЫ ВЫИГРАЛИ! 🎉<br>Вы: ${icons[playerChoice]} vs Бот: ${icons[botChoice]}<br>Выигрыш: <strong>+${winAmount} PKOIN</strong>`;
         resultEl.style.color = '#2ecc71';
       } else {
-        botScore++;
-        document.getElementById('botScore').innerText = botScore;
-        resultEl.innerHTML = `Бот выиграл! 🤖<br>Вы: ${icons[playerChoice]} vs Бот: ${icons[botChoice]}`;
+        resultEl.innerHTML = `БОТ ВЫИГРАЛ 🤖<br>Вы: ${icons[playerChoice]} vs Бот: ${icons[botChoice]}<br>Потеряно: <strong>-${betAmount} PKOIN</strong>`;
         resultEl.style.color = '#e74c3c';
       }
+    }
+
+    function toggleButtons(disabled) {
+      const buttons = document.querySelectorAll('.choice-btn');
+      buttons.forEach(btn => btn.disabled = disabled);
     }
   </script>
 </body>
